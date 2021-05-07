@@ -146,13 +146,14 @@ def list_users():
     """
 
     search = request.args.get('q')
+    form = CSRFValidationForm()
 
     if not search:
         users = User.query.all()
     else:
         users = User.query.filter(User.username.like(f"%{search}%")).all()
 
-    return render_template('users/index.html', users=users)
+    return render_template('users/index.html', users=users, form=form)
 
 
 @app.route('/users/<int:user_id>')
@@ -209,7 +210,8 @@ def add_follow(follow_id):
         followed_user = User.query.get_or_404(follow_id)
         g.user.following.append(followed_user)
         db.session.commit()
-        return redirect(f"/users/{g.user.id}/following")
+        # return redirect(f"/users/{g.user.id}/following")
+        return redirect(request.referrer)
     else:
         flash("Access unauthorized.", "danger")
         return redirect("/")
@@ -228,7 +230,8 @@ def stop_following(follow_id):
         followed_user = User.query.get(follow_id)
         g.user.following.remove(followed_user)
         db.session.commit()
-        return redirect(f"/users/{g.user.id}/following")
+        # return redirect(f"/users/{g.user.id}/following")
+        return redirect(request.referrer)
     else:
         flash("Access unauthorized.", "danger")
         return redirect("/")
@@ -367,6 +370,8 @@ def like_message(message_id):
 
     if form.validate_on_submit():
         msg = Message.query.get_or_404(message_id)
+        # TODO refactor referrer line below to find a more reliable method of
+        # grabbing the origin of the request given that this setting may be disabled for some users
         origin_of_req = request.referrer
         # only allow users to like OTHER users' posts
         # check for failure first
@@ -396,9 +401,11 @@ def unlike_message(message_id):
 
     if form.validate_on_submit():
         # grab the liked message we want to unlike
-        # remove from user's list of liked messages
         msg = Message.query.get_or_404(message_id)
+        # TODO refactor referrer line below to find a more reliable method of
+        # grabbing the origin of the request given that this setting may be disabled for some users
         origin_of_req = request.referrer
+        # remove from user's list of liked messages
         g.user.liked_messages.remove(msg)
         db.session.commit()
         return redirect(origin_of_req)

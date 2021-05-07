@@ -38,6 +38,9 @@ class UserModelTestCase(TestCase):
         User.query.delete()
         Message.query.delete()
 
+        # TODO add some sample data into here
+        # and utilize 'self' to call in below tests
+
         self.client = app.test_client()
 
     def test_user_model(self):
