@@ -26,6 +26,33 @@ class Follows(db.Model):
         primary_key=True,
     )
 
+# class Likes (many table, will connect to users)
+# user_id = int foreign key referencing users.id, primary key
+# message_id = int foreign key referencing messages.id, primary key
+# timestamp that like occured = datetime, default of utc now
+
+
+class Like(db.Model):
+    """Stores liked messages for users"""
+
+    __tablename__ = "likes"
+
+    user_id = db.Column(
+                        db.Integer,
+                        db.ForeignKey('users.id'),
+                        primary_key=True)
+    message_id = db.Column(
+                            db.Integer,
+                            db.ForeignKey('messages.id'),
+                            primary_key=True)
+    like_occurred_at = db.Column(
+                                db.DateTime,
+                                nullable=False,
+                                default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Like #{self.user_id}: {self.message_id}>"
+
 
 class User(db.Model):
     """User in the system."""
@@ -87,6 +114,11 @@ class User(db.Model):
         primaryjoin=(Follows.user_following_id == id),
         secondaryjoin=(Follows.user_being_followed_id == id)
     )
+
+    liked_messages = db.relationship(
+                            'Message',  # what table do i want to fetch things FROM
+                            secondary='likes'  # through likes table
+                            )
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}>"

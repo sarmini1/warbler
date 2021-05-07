@@ -33,9 +33,8 @@ class EditProfileForm(FlaskForm):
     image_url = StringField('(Optional) Image URL')
     header_image_url = StringField('(Optional) Header Image URL')
     bio = StringField('(Optional) Bio')
-
-
-class CheckPasswordForm(FlaskForm):
-    """Single-input form to check a user's password"""
-
     password = PasswordField('Current Password', validators=[Length(min=6)])
+
+
+class CSRFValidationForm(FlaskForm):
+    """Validates that the non-get request should occur"""

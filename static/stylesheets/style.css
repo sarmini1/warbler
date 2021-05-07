@@ -188,8 +188,14 @@ nav + .container {
 }
 
 .message-area,
-.timeline-image {
+.timeline-image,
+.like-star {
   display: inline-block;
+}
+
+.like-star {
+  position: relative;
+  z-index: 11;
 }
 
 .message-area {

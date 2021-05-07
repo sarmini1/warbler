@@ -34,9 +34,9 @@ class UserModelTestCase(TestCase):
     def setUp(self):
         """Create test client, add sample data."""
 
+        Follows.query.delete()
         User.query.delete()
         Message.query.delete()
-        Follows.query.delete()
 
         self.client = app.test_client()
 
@@ -55,3 +55,106 @@ class UserModelTestCase(TestCase):
         # User should have no messages & no followers
         self.assertEqual(len(u.messages), 0)
         self.assertEqual(len(u.followers), 0)
+
+    def test_user_repr_method(self):
+        """Does the repr method display the correct info?"""
+
+        u = User(
+            email="reprtest@test.com",
+            username="reprtestuser",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u)
+        db.session.commit()
+        user = User.query.filter(User.username == "reprtestuser").first()
+        # breakpoint()
+        self.assertEqual(
+                        f'{user}',
+                        f"<User #{user.id}: {user.username}, {user.email}>")
+
+    def test_following_another_user(self):
+        """Does is_following method successfully detect when user1 follows user2?"""
+
+        u1 = User(
+            email="followingtestuser1@test.com",
+            username="followingtestuser1",
+            password="HASHED_PASSWORD"
+        )
+
+        u2 = User(
+            email="followingtestuser2@test.com",
+            username="followingtestuser2",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u1)
+        db.session.add(u2)
+        db.session.commit()
+
+        test_follow = Follows(
+                            user_being_followed_id=u2.id,
+                            user_following_id=u1.id)
+        db.session.add(test_follow)
+        db.session.commit()
+        test_is_following = u1.is_following(u2)
+        test_followed_by = u2.is_followed_by(u1)
+        self.assertEqual(test_is_following, True)
+        self.assertEqual(test_followed_by, True)
+
+    def test_not_following_another_user(self):
+        """Does is_following method successfully detect when user1
+        isn't following user2?"""
+
+        u1 = User(
+            email="followingtestuser1@test.com",
+            username="followingtestuser1",
+            password="HASHED_PASSWORD"
+        )
+
+        u2 = User(
+            email="followingtestuser2@test.com",
+            username="followingtestuser2",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u1)
+        db.session.add(u2)
+        db.session.commit()
+
+        test_is_following = u1.is_following(u2)
+        test_is_followed_by = u2.is_followed_by(u1)
+        self.assertEqual(test_is_following, False)
+        self.assertEqual(test_is_followed_by, False)
+
+    def test_signup_valid(self):
+        """Does signup class method successfully create a new user
+            when given valid credentials?"""
+
+        credentials = {
+                            "username": "signup_user",
+                            "email": "signup@user.com",
+                            "password": "something",
+                            "image_url": "/static/images/default-pic.png"}
+
+        User.signup(**credentials)
+        db.session.commit()
+        # breakpoint()
+        signup_user_record = User.query.filter(User.username == "signup_user").first()
+        self.assertIsNotNone(signup_user_record)
+
+    def test_signup_invalid(self):
+        """Does signup class method successfully create a new user
+            when given invalid credentials?"""
+
+        credentials = {
+                            "username": 23980,
+                            "email": "signup@user.com",
+                            "password": "something",
+                            "image_url": "/static/images/default-pic.png"}
+
+        User.signup(**credentials)
+        db.session.commit()
+        # breakpoint()
+        signup_user_record = User.query.filter(User.username == "signup_user").first()
+        self.assertIsNone(signup_user_record)

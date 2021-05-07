@@ -9,8 +9,8 @@
         {{ form.hidden_tag() }}
 
         {% for field in form if
-              field.widget.input_type != 'hidden' %} <!--and
-              field.name != 'password' %} ASK ABOUT THIS-->
+              field.widget.input_type != 'hidden' and
+              field.name != 'password' %}
               {{ field.label }}
           {% for error in field.errors %}
             <span class="text-danger">{{ error }}</span>
@@ -20,29 +20,28 @@
 
         <p>To confirm changes, enter your password:</p>
         <form method="POST" id="password_form">
-          {{ pw_form.hidden_tag() }}
+          {{ form.hidden_tag() }}
   
-          {% for field in pw_form if
+          {% for field in form if
                 field.widget.input_type != 'hidden' and
-                field.name != 'password' %}
+                field.name == 'password' %}
             {% for error in field.errors %}
               <span class="text-danger">{{ error }}</span>
             {% endfor %}
             {{ field(placeholder=field.label.text, class="form-control") }}
           {% endfor %}
 
-        {% if pw_form.password.errors %}
-          {% for error in pw_form.password.errors %}
+        {% if form.password.errors %}
+          {% for error in form.password.errors %}
             <span class="text-danger">
             {{ error }}
           </span>
           {% endfor %}
         {% endif %}
-        {{ pw_form.password(placeholder="Enter your password to confirm", class="form-control") }}
 
         <div class="edit-btn-area">
           <button class="btn btn-success">Edit this user!</button>
-          <a href="/users/{{ user_id }}" class="btn btn-outline-secondary">Cancel</a>
+          <a href="/users/{{user.id}}" class="btn btn-outline-secondary">Cancel</a>
         </div>
       </form>
     </div>

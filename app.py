@@ -4,8 +4,13 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm, EditProfileForm, CheckPasswordForm
-from models import db, connect_db, User, Message
+from forms import (
+                    UserAddForm,
+                    LoginForm,
+                    MessageForm,
+                    EditProfileForm,
+                    CSRFValidationForm)
+from models import db, connect_db, User, Message, Like
 
 CURR_USER_KEY = "curr_user"
 
@@ -18,9 +23,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+# app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
-toolbar = DebugToolbarExtension(app)
+# toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
 
@@ -48,17 +53,12 @@ def do_login(user):
     session[CURR_USER_KEY] = user.id
 
 
-@app.route("/logout") # should be a post request
 def do_logout():
     """Logout user."""
 
-    if CURR_USER_KEY in session: #this could be a helper function
+    if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
-        flash("Successfully logged out!")
-        return redirect('/login')
-    else:
-        flash("You need to be logged in to logout!")
-        return redirect('/login')
+        return True
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -69,7 +69,7 @@ def signup():
 
     If form not valid, present form.
 
-    If the there already is a user with that username: flash message
+    If there already is a user with that username: flash message
     and re-present form.
     """
 
@@ -117,14 +117,26 @@ def login():
     return render_template('users/login.html', form=form)
 
 
-# below route seems like a duplicate, there's another logout route above
-# @app.route('/logout')
-# def logout():
-#   """Handle logout of user."""
+@app.route('/logout', methods=["GET", "POST"])
+def logout():
+    """Handle logout of user."""
 
+    form = CSRFValidationForm()
+
+    if form.validate_on_submit():
+        if do_logout():
+            flash("Successfully logged out!")
+            return redirect('/login')
+        else:
+            flash("You need to be logged in to logout!")
+            return redirect('/login')
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
 # #############################################################################
 # General user routes:
+
 
 @app.route('/users')
 def list_users():
@@ -147,10 +159,15 @@ def list_users():
 def users_show(user_id):
     """Show user profile."""
 
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    form = CSRFValidationForm()
     user = User.query.get_or_404(user_id)
     # breakpoint()
 
-    return render_template('users/show.html', user=user)
+    return render_template('users/show.html', user=user, form=form)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -161,8 +178,9 @@ def show_following(user_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    form = CSRFValidationForm()
     user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user)
+    return render_template('users/following.html', user=user, form=form)
 
 
 @app.route('/users/<int:user_id>/followers')
@@ -173,11 +191,12 @@ def users_followers(user_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    form = CSRFValidationForm()
     user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user)
+    return render_template('users/followers.html', user=user, form=form)
 
 
-@app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@app.route('/users/follow/<int:follow_id>', methods=["GET", "POST"])
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
 
@@ -185,14 +204,18 @@ def add_follow(follow_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    followed_user = User.query.get_or_404(follow_id)
-    g.user.following.append(followed_user)
-    db.session.commit()
+    form = CSRFValidationForm()
+    if form.validate_on_submit():
+        followed_user = User.query.get_or_404(follow_id)
+        g.user.following.append(followed_user)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}/following")
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
-    return redirect(f"/users/{g.user.id}/following")
 
-
-@app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@app.route('/users/stop-following/<int:follow_id>', methods=["GET", "POST"])
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
 
@@ -200,11 +223,15 @@ def stop_following(follow_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    followed_user = User.query.get(follow_id)
-    g.user.following.remove(followed_user)
-    db.session.commit()
-
-    return redirect(f"/users/{g.user.id}/following")
+    form = CSRFValidationForm()
+    if form.validate_on_submit():
+        followed_user = User.query.get(follow_id)
+        g.user.following.remove(followed_user)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}/following")
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -216,50 +243,48 @@ def profile():
         flash("Access unauthorized.", "danger")
         return redirect('/')
     else:
-        form = EditProfileForm(obj=g.user)  # believe g.user is the user object
+        form = EditProfileForm(obj=g.user)
 
-        # we don't want the password field to be populated, so it
-        # may need to be a separate form
-        pw_form = CheckPasswordForm() # this can actually be within the edit profile form
-
-        # check that the user provided the right password first
-        if pw_form.validate_on_submit():
-            password = pw_form.password.data
+        # post request route
+        if form.validate_on_submit():
+            password = form.password.data
             auth_user = User.authenticate(g.user.username, password)
             # if user is authenticated, then check edit profile form inputs
             if auth_user:
-                if form.validate_on_submit():
-                    auth_user.username = form.username.data
-                    auth_user.email = form.email.data
-                    auth_user.image_url = form.image_url.data
-                    auth_user.header_image_url = form.header_image_url.data
-                    auth_user.bio = form.bio.data
-                    db.session.commit()
-                    return redirect(f"/users/{g.user.id}")
-                else:
-                    return render_template("users/edit.html", form=form, pw_form=pw_form)
-            else: # can change this to rendering the regular template, remove some of these elses
+                auth_user.username = form.username.data
+                auth_user.email = form.email.data
+                auth_user.image_url = form.image_url.data
+                auth_user.header_image_url = form.header_image_url.data
+                auth_user.bio = form.bio.data
+                db.session.commit()
+                return redirect(f"/users/{g.user.id}")
+            else:
                 flash("Unauthorized.", "danger")
                 return redirect("/")
+        # get request route
         else:
-            return render_template("users/edit.html", form=form, pw_form=pw_form)
+            return render_template("users/edit.html", form=form, user=g.user)
 
 
-@app.route('/users/delete', methods=["POST"])
+@app.route('/users/delete', methods=["GET", "POST"])
 def delete_user():
     """Delete user."""
-    # will need to add the form here
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    do_logout()
+    form = CSRFValidationForm()
 
-    db.session.delete(g.user)
-    db.session.commit()
-
-    return redirect("/signup")
+    if form.validate_on_submit():
+        do_logout()
+        flash("Successfully deleted!")
+        db.session.delete(g.user)
+        db.session.commit()
+        return redirect("/signup")
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
 
 ##############################################################################
@@ -282,7 +307,6 @@ def messages_add():
         msg = Message(text=form.text.data)
         g.user.messages.append(msg)
         db.session.commit()
-
         return redirect(f"/users/{g.user.id}")
 
     return render_template('messages/new.html', form=form)
@@ -292,11 +316,21 @@ def messages_add():
 def messages_show(message_id):
     """Show a message."""
 
+    # checking that the current user is logged in may not
+    # be super crucial in this route but it can't hurt.
+    # would want to change this in some way once the concept of
+    # public/private profiles gets introduced
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    form = CSRFValidationForm()
     msg = Message.query.get(message_id)
-    return render_template('messages/show.html', message=msg)
+    return render_template('messages/show.html', message=msg, form=form)
 
 
-@app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@app.route('/messages/<int:message_id>/delete', methods=["GET", "POST"])
 def messages_destroy(message_id):
     """Delete a message."""
 
@@ -304,16 +338,93 @@ def messages_destroy(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    msg = Message.query.get(message_id)
-    db.session.delete(msg)
-    db.session.commit()
+    form = CSRFValidationForm()
 
-    return redirect(f"/users/{g.user.id}")
+    if form.validate_on_submit():
+        # before deleting msg from messages table, need to remove from likes
+        if Like.query.filter(Like.message_id == message_id).all():
+            Like.query.filter(Like.message_id == message_id).all().delete()
+            db.session.commit()
+
+        msg = Message.query.get(message_id)
+        db.session.delete(msg)
+        db.session.commit()
+        return redirect(f"/users/{g.user.id}")
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+
+@app.route('/messages/<int:message_id>/like', methods=["GET", "POST"])
+def like_message(message_id):
+    """Adds a message to logged in user's likes"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    form = CSRFValidationForm()
+
+    if form.validate_on_submit():
+        msg = Message.query.get_or_404(message_id)
+        origin_of_req = request.referrer
+        # only allow users to like OTHER users' posts
+        # check for failure first
+        if msg.user_id == g.user.id:
+            flash("You can't like your own posts!", "danger")
+            return redirect(origin_of_req)
+        else:
+            # append msg to that user's liked messages
+            g.user.liked_messages.append(msg)
+            db.session.commit()
+            return redirect(origin_of_req)
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+
+# think about different HTTP verbs in other contexts
+@app.route('/messages/<int:message_id>/unlike', methods=["GET", "POST"])
+def unlike_message(message_id):
+    """Removes a message from logged in user's likes"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    form = CSRFValidationForm()
+
+    if form.validate_on_submit():
+        # grab the liked message we want to unlike
+        # remove from user's list of liked messages
+        msg = Message.query.get_or_404(message_id)
+        origin_of_req = request.referrer
+        g.user.liked_messages.remove(msg)
+        db.session.commit()
+        return redirect(origin_of_req)
+    else:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Shows liked messages for a particular user"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    form = CSRFValidationForm()
+
+    # TODO ARRANGE LIKED MESSAGES IN DESCENDING ORDER BY WHEN THE LIKE OCCURRED
+    # breakpoint()
+    return render_template("likes.html", user=user, form=form)
 
 
 ##############################################################################
 # Homepage and error pages
-
 
 @app.route('/')
 def homepage():
@@ -323,9 +434,8 @@ def homepage():
     - logged in: 100 most recent messages of followed_users
     """
     if g.user:
-
-        # grab the ids of the users that current user is following (and the user)
-        users_to_display = [user.id for user in g.user.following] + [g.user]
+        # grab the ids of the users that current user is following (& the user)
+        users_to_display = [user.id for user in g.user.following] + [g.user.id]
         # breakpoint()
         # only pull in messages from users whose ids are in the above list
         messages = (Message
@@ -334,8 +444,9 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
+        form = CSRFValidationForm()
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, form=form)
 
     else:
         return render_template('home-anon.html')
