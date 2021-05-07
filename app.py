@@ -145,6 +145,10 @@ def list_users():
     Can take a 'q' param in querystring to search by that username.
     """
 
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
     search = request.args.get('q')
     form = CSRFValidationForm()
 
@@ -166,7 +170,6 @@ def users_show(user_id):
 
     form = CSRFValidationForm()
     user = User.query.get_or_404(user_id)
-    # breakpoint()
 
     return render_template('users/show.html', user=user, form=form)
 
@@ -321,7 +324,7 @@ def messages_show(message_id):
 
     # checking that the current user is logged in may not
     # be super crucial in this route but it can't hurt.
-    # would want to change this in some way once the concept of
+    # TODO may want to change this in some way once the concept of
     # public/private profiles gets introduced
 
     if not g.user:
@@ -371,8 +374,13 @@ def like_message(message_id):
     if form.validate_on_submit():
         msg = Message.query.get_or_404(message_id)
         # TODO refactor referrer line below to find a more reliable method of
-        # grabbing the origin of the request given that this setting may be disabled for some users
+        # grabbing the origin of the request given that this setting
+        # may be disabled for some users
         origin_of_req = request.referrer
+
+        # TODO additional note here to incorporate like functionality
+        # as a method in a class instead
+
         # only allow users to like OTHER users' posts
         # check for failure first
         if msg.user_id == g.user.id:
@@ -402,10 +410,15 @@ def unlike_message(message_id):
     if form.validate_on_submit():
         # grab the liked message we want to unlike
         msg = Message.query.get_or_404(message_id)
+
         # TODO refactor referrer line below to find a more reliable method of
-        # grabbing the origin of the request given that this setting may be disabled for some users
+        # grabbing the origin of the request given that this setting
+        # may be disabled for some users
         origin_of_req = request.referrer
+
         # remove from user's list of liked messages
+        # TODO additional note here to incorporate unlike functionality
+        # as a method in a class instead
         g.user.liked_messages.remove(msg)
         db.session.commit()
         return redirect(origin_of_req)
@@ -425,8 +438,7 @@ def show_likes(user_id):
     user = User.query.get_or_404(user_id)
     form = CSRFValidationForm()
 
-    # TODO ARRANGE LIKED MESSAGES IN DESCENDING ORDER BY WHEN THE LIKE OCCURRED
-    # breakpoint()
+    # TODO arrange liked messages in desc order by when like occurred
     return render_template("likes.html", user=user, form=form)
 
 
@@ -443,7 +455,6 @@ def homepage():
     if g.user:
         # grab the ids of the users that current user is following (& the user)
         users_to_display = [user.id for user in g.user.following] + [g.user.id]
-        # breakpoint()
         # only pull in messages from users whose ids are in the above list
         messages = (Message
                     .query
