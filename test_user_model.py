@@ -158,3 +158,53 @@ class UserModelTestCase(TestCase):
         # breakpoint()
         signup_user_record = User.query.filter(User.username == "signup_user").first()
         self.assertIsNone(signup_user_record)
+
+    def test_authenticate_valid_user(self):
+        """Does the authenticate method successfully return a user
+        when given valid credentials?"""
+
+        credentials = {
+                            "username": "authed_user",
+                            "email": "auth@user.com",
+                            "password": "something",
+                            "image_url": "/static/images/default-pic.png"}
+
+        User.signup(**credentials)
+        db.session.commit()
+        user = User.authenticate("authed_user", "something")
+        # breakpoint()
+        self.assertEqual(
+                        f'{user}',
+                        f"<User #{user.id}: {user.username}, {user.email}>")
+
+    def test_authenticate_invalid_username(self):
+        """Does the authenticate method successfully return a user
+        when given an invalid username?"""
+
+        credentials = {
+                            "username": "authed_user",
+                            "email": "auth@user.com",
+                            "password": "something",
+                            "image_url": "/static/images/default-pic.png"}
+
+        User.signup(**credentials)
+        db.session.commit()
+        user = User.authenticate("not_authed_user", "something")
+        # breakpoint()
+        self.assertEqual(user, False)
+
+    def test_authenticate_invalid_pw(self):
+        """Does the authenticate method successfully return a user
+        when given an invalid password?"""
+
+        credentials = {
+                            "username": "authed_user",
+                            "email": "auth@user.com",
+                            "password": "something",
+                            "image_url": "/static/images/default-pic.png"}
+
+        User.signup(**credentials)
+        db.session.commit()
+        user = User.authenticate("authed_user", "something_else")
+        # breakpoint()
+        self.assertEqual(user, False)
