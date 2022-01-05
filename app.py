@@ -44,6 +44,8 @@ def add_user_to_g():
     # this happens before every request since it's the view
     # function for the before_request decorator
 
+    # TODO look into flask middleware for this
+
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
 
