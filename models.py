@@ -26,11 +26,6 @@ class Follows(db.Model):
         primary_key=True,
     )
 
-# class Likes (many table, will connect to users)
-# user_id = int foreign key referencing users.id, primary key
-# message_id = int foreign key referencing messages.id, primary key
-# timestamp that like occured = datetime, default of utc now
-
 
 class Like(db.Model):
     """Stores liked messages for users"""
@@ -38,17 +33,20 @@ class Like(db.Model):
     __tablename__ = "likes"
 
     user_id = db.Column(
-                        db.Integer,
-                        db.ForeignKey('users.id'),
-                        primary_key=True)
+        db.Integer,
+        db.ForeignKey('users.id', ondelete="cascade"),
+        primary_key=True
+    )
     message_id = db.Column(
-                            db.Integer,
-                            db.ForeignKey('messages.id'),
-                            primary_key=True)
+        db.Integer,
+        db.ForeignKey('messages.id', ondelete="cascade"),
+        primary_key=True
+    )
     like_occurred_at = db.Column(
-                                db.DateTime,
-                                nullable=False,
-                                default=datetime.utcnow)
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
 
     def __repr__(self):
         return f"<Like #{self.user_id}: {self.message_id}>"
@@ -218,5 +216,6 @@ def connect_db(app):
     You should call this in your Flask app.
     """
 
+    app.app_context().push()
     db.app = app
     db.init_app(app)
