@@ -11,7 +11,7 @@ from forms import (
                     EditProfileForm,
                     CSRFValidationForm)
 
-os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
+os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 from app import app
 
 app.config['WTF_CSRF_ENABLED'] = False
@@ -61,7 +61,7 @@ class UserViewTestCase(TestCase):
                                     'password': 'testuserpass'
                                 })
             self.assertEqual(resp.status_code, 302)
-            self.assertEqual(resp.location, "http://localhost/")
+            self.assertEqual(resp.location, "/")
 
     def test_login_valid_creds_redirect_followed(self):
         """Can a user login with valid credentials and see
