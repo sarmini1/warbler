@@ -114,9 +114,10 @@ class User(db.Model):
     )
 
     liked_messages = db.relationship(
-                            'Message',  # what table do i want to fetch things FROM
-                            secondary='likes'  # through likes table
-                            )
+        'Message',  # what table do i want to fetch things FROM
+        secondary='likes', # through likes table
+        backref="liked_by_users"
+    )
 
     def __repr__(self):
         return f"<User #{self.id}: {self.username}, {self.email}>"
