@@ -4,12 +4,6 @@ import os
 from unittest import TestCase
 
 from models import db, User, Message, Follows, Like
-from forms import (
-                    MessageForm,
-                    UserAddForm,
-                    LoginForm,
-                    EditProfileForm,
-                    CSRFValidationForm)
 
 os.environ['DATABASE_URL'] = "postgresql:///warbler_test"
 from app import app
@@ -36,10 +30,11 @@ class UserViewTestCase(TestCase):
         self.client = app.test_client()
 
         testuser = User.signup(
-                                username="testuser",
-                                email="test@test.com",
-                                password="testuserpass",
-                                image_url=None)
+            username="testuser",
+            email="test@test.com",
+            password="testuserpass",
+            image_url=None
+        )
 
         db.session.commit()
         self.testuser_id = testuser.id
@@ -55,11 +50,12 @@ class UserViewTestCase(TestCase):
 
         with app.test_client() as client:
             resp = client.post(
-                                "/login",
-                                data={
-                                    'username': 'testuser',
-                                    'password': 'testuserpass'
-                                })
+                "/login",
+                data={
+                    'username': 'testuser',
+                    'password': 'testuserpass'
+                    }
+                )
             self.assertEqual(resp.status_code, 302)
             self.assertEqual(resp.location, "/")
 
@@ -69,11 +65,13 @@ class UserViewTestCase(TestCase):
 
         with app.test_client() as client:
             resp = client.post(
-                                "/login",
-                                data={
-                                    'username': 'testuser',
-                                    'password': 'testuserpass'},
-                                follow_redirects=True)
+                "/login",
+                data={
+                    'username': 'testuser',
+                    'password': 'testuserpass'
+                    },
+                follow_redirects=True
+                )
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -85,14 +83,14 @@ class UserViewTestCase(TestCase):
 
         with app.test_client() as client:
             resp = client.post(
-                                "/login",
-                                data={
-                                    'username': 'testuser',
-                                    'password': 'testuserpass1'
-                                })
+                "/login",
+                data={
+                    'username': 'testuser',
+                    'password': 'testuserpass1'
+                    }
+                )
             html = resp.get_data(as_text=True)
 
-            # breakpoint()
             self.assertEqual(resp.status_code, 200)
             self.assertIn("Invalid credentials", html)
             self.assertNotIn("Log out", html)
@@ -113,12 +111,14 @@ class UserViewTestCase(TestCase):
             db.session.commit()  # this marks the end of the transaction
             u2_id = u2.id
 
-            login_resp = client.post(
-                                "/login",
-                                data={
-                                    'username': 'testuser',
-                                    'password': 'testuserpass'},
-                                follow_redirects=True)
+            client.post(
+                "/login",
+                data={
+                    'username': 'testuser',
+                    'password': 'testuserpass'
+                },
+                follow_redirects=True
+            )
 
             followers_resp = client.get(f"/users/{u2_id}/followers")
             html = followers_resp.get_data(as_text=True)

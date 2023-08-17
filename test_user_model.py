@@ -1,10 +1,3 @@
-"""User model tests."""
-
-# run these tests like:
-#
-#    python -m unittest test_user_model.py
-
-
 import os
 from unittest import TestCase
 
@@ -71,10 +64,10 @@ class UserModelTestCase(TestCase):
         db.session.add(u)
         db.session.commit()
         user = User.query.filter(User.username == "reprtestuser").first()
-        # breakpoint()
         self.assertEqual(
-                        f'{user}',
-                        f"<User #{user.id}: {user.username}, {user.email}>")
+            f'{user}',
+            f"<User #{user.id}: {user.username}, {user.email}>"
+        )
 
     def test_following_another_user(self):
         """Does is_following method successfully detect when user1 follows user2?"""
@@ -91,17 +84,19 @@ class UserModelTestCase(TestCase):
             password="HASHED_PASSWORD"
         )
 
-        db.session.add(u1)
-        db.session.add(u2)
+        db.session.add_all([u1, u2])
         db.session.commit()
 
         test_follow = Follows(
-                            user_being_followed_id=u2.id,
-                            user_following_id=u1.id)
+            user_being_followed_id=u2.id,
+            user_following_id=u1.id
+        )
         db.session.add(test_follow)
         db.session.commit()
+
         test_is_following = u1.is_following(u2)
         test_followed_by = u2.is_followed_by(u1)
+
         self.assertEqual(test_is_following, True)
         self.assertEqual(test_followed_by, True)
 
@@ -121,12 +116,12 @@ class UserModelTestCase(TestCase):
             password="HASHED_PASSWORD"
         )
 
-        db.session.add(u1)
-        db.session.add(u2)
+        db.session.add_all([u1, u2])
         db.session.commit()
 
         test_is_following = u1.is_following(u2)
         test_is_followed_by = u2.is_followed_by(u1)
+
         self.assertEqual(test_is_following, False)
         self.assertEqual(test_is_followed_by, False)
 
@@ -135,14 +130,15 @@ class UserModelTestCase(TestCase):
             when given valid credentials?"""
 
         credentials = {
-                            "username": "signup_user",
-                            "email": "signup@user.com",
-                            "password": "something",
-                            "image_url": "/static/images/default-pic.png"}
+            "username": "signup_user",
+            "email": "signup@user.com",
+            "password": "something",
+            "image_url": "/static/images/default-pic.png"
+        }
 
         User.signup(**credentials)
         db.session.commit()
-        # breakpoint()
+
         signup_user_record = User.query.filter(User.username == "signup_user").first()
         self.assertIsNotNone(signup_user_record)
 
@@ -151,14 +147,15 @@ class UserModelTestCase(TestCase):
             when given invalid credentials?"""
 
         credentials = {
-                            "username": 23980,
-                            "email": "signup@user.com",
-                            "password": "something",
-                            "image_url": "/static/images/default-pic.png"}
+            "username": 23980,
+            "email": "signup@user.com",
+            "password": "something",
+            "image_url": "/static/images/default-pic.png"
+        }
 
         User.signup(**credentials)
         db.session.commit()
-        # breakpoint()
+
         signup_user_record = User.query.filter(User.username == "signup_user").first()
         self.assertIsNone(signup_user_record)
 
@@ -167,33 +164,36 @@ class UserModelTestCase(TestCase):
         when given valid credentials?"""
 
         credentials = {
-                            "username": "authed_user",
-                            "email": "auth@user.com",
-                            "password": "something",
-                            "image_url": "/static/images/default-pic.png"}
+            "username": "authed_user",
+            "email": "auth@user.com",
+            "password": "something",
+            "image_url": "/static/images/default-pic.png"
+        }
 
         User.signup(**credentials)
         db.session.commit()
         user = User.authenticate("authed_user", "something")
-        # breakpoint()
+
         self.assertEqual(
-                        f'{user}',
-                        f"<User #{user.id}: {user.username}, {user.email}>")
+            f'{user}',
+            f"<User #{user.id}: {user.username}, {user.email}>"
+        )
 
     def test_authenticate_invalid_username(self):
         """Does the authenticate method successfully return a user
         when given an invalid username?"""
 
         credentials = {
-                            "username": "authed_user",
-                            "email": "auth@user.com",
-                            "password": "something",
-                            "image_url": "/static/images/default-pic.png"}
+            "username": "authed_user",
+            "email": "auth@user.com",
+            "password": "something",
+            "image_url": "/static/images/default-pic.png"
+        }
 
         User.signup(**credentials)
         db.session.commit()
+
         user = User.authenticate("not_authed_user", "something")
-        # breakpoint()
         self.assertEqual(user, False)
 
     def test_authenticate_invalid_pw(self):
@@ -201,13 +201,14 @@ class UserModelTestCase(TestCase):
         when given an invalid password?"""
 
         credentials = {
-                            "username": "authed_user",
-                            "email": "auth@user.com",
-                            "password": "something",
-                            "image_url": "/static/images/default-pic.png"}
+            "username": "authed_user",
+            "email": "auth@user.com",
+            "password": "something",
+            "image_url": "/static/images/default-pic.png"
+        }
 
         User.signup(**credentials)
         db.session.commit()
+
         user = User.authenticate("authed_user", "something_else")
-        # breakpoint()
         self.assertEqual(user, False)

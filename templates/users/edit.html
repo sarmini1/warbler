@@ -21,7 +21,7 @@
         <p>To confirm changes, enter your password:</p>
         <form method="POST" id="password_form">
           {{ form.hidden_tag() }}
-  
+
           {% for field in form if
                 field.widget.input_type != 'hidden' and
                 field.name == 'password' %}
@@ -30,14 +30,6 @@
             {% endfor %}
             {{ field(placeholder=field.label.text, class="form-control") }}
           {% endfor %}
-
-        {% if form.password.errors %}
-          {% for error in form.password.errors %}
-            <span class="text-danger">
-            {{ error }}
-          </span>
-          {% endfor %}
-        {% endif %}
 
         <div class="edit-btn-area">
           <button class="btn btn-success">Edit this user!</button>

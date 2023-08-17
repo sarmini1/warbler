@@ -17,9 +17,6 @@ from models import db, connect_db, User, Message, Like
 # if not set there, use development local db.
 database_url = os.environ.get('DATABASE_URL', 'postgresql:///warbler')
 
-# fix incorrect database URIs currently returned by Heroku's pg setup
-# database_url = database_url.replace('postgres://', 'postgresql://')
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
@@ -254,28 +251,28 @@ def profile():
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect('/')
-    else:
-        form = EditProfileForm(obj=g.user)
 
-        # post request route
-        if form.validate_on_submit():
-            password = form.password.data
-            auth_user = User.authenticate(g.user.username, password)
-            # if user is authenticated, then check edit profile form inputs
-            if auth_user:
-                auth_user.username = form.username.data
-                auth_user.email = form.email.data
-                auth_user.image_url = form.image_url.data
-                auth_user.header_image_url = form.header_image_url.data
-                auth_user.bio = form.bio.data
-                db.session.commit()
-                return redirect(f"/users/{g.user.id}")
-            else:
-                flash("Unauthorized.", "danger")
-                return redirect("/")
-        # get request route
+    form = EditProfileForm(obj=g.user)
+
+    # post request route
+    if form.validate_on_submit():
+        password = form.password.data
+        auth_user = User.authenticate(g.user.username, password)
+        # if user is authenticated, then check edit profile form inputs
+        if auth_user:
+            auth_user.username = form.username.data
+            auth_user.email = form.email.data
+            auth_user.image_url = form.image_url.data
+            auth_user.header_image_url = form.header_image_url.data
+            auth_user.bio = form.bio.data
+            db.session.commit()
+            return redirect(f"/users/{g.user.id}")
         else:
-            return render_template("users/edit.html", form=form, user=g.user)
+            flash("Unauthorized.", "danger")
+            return redirect("/")
+    # get request route
+    else:
+        return render_template("users/edit.html", form=form, user=g.user)
 
 
 @app.route('/users/delete', methods=["GET", "POST"])
