@@ -173,6 +173,9 @@ class User(db.Model):
 
         return False
 
+    # TODO add functionality to like/unlike something as a method on this class
+    # will need to refactor like/unlike routes to utilize new method(s)
+    # and write additional tests to verify functionality
 
 class Message(db.Model):
     """An individual message ("warble")."""
@@ -205,10 +208,6 @@ class Message(db.Model):
 
     def __repr__(self):
         return f"<Message #{self.id}, Author ID:{self.user_id}>"
-
-    # TODO add functionality to like/unlike something as a method on this class
-    # will need to refactor like/unlike routes to utilize new method(s)
-    # and write additional tests to verify functionality
 
 
 def connect_db(app):
