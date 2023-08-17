@@ -459,12 +459,14 @@ def homepage():
         # grab the ids of the users that current user is following (& the user)
         users_to_display = [user.id for user in g.user.following] + [g.user.id]
         # only pull in messages from users whose ids are in the above list
-        messages = (Message
-                    .query
-                    .filter(Message.user_id.in_(users_to_display))
-                    .order_by(Message.timestamp.desc())
-                    .limit(100)
-                    .all())
+        messages = (
+            Message
+            .query
+            .filter(Message.user_id.in_(users_to_display))
+            .order_by(Message.timestamp.desc())
+            .limit(100)
+            .all()
+        )
         form = CSRFValidationForm()
 
         return render_template('home.html', messages=messages, form=form)

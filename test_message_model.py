@@ -65,8 +65,7 @@ class MessageModelTestCase(TestCase):
             password="HASHED_PASSWORD"
         )
 
-        db.session.add(u2)
-        db.session.add(msg)
+        db.session.add_all([u2, msg])
         db.session.commit()
 
         # User should have 1 message & no followers
@@ -92,8 +91,9 @@ class MessageModelTestCase(TestCase):
         db.session.commit()
 
         self.assertEqual(
-                        f'{msg}',
-                        f"<Message #{msg.id}, Author ID:{msg.user_id}>")
+            f'{msg}',
+            f"<Message #{msg.id}, Author ID:{msg.user_id}>"
+        )
 
     def test_like_msg(self):
         """Can a user like another user's message?"""
@@ -115,8 +115,10 @@ class MessageModelTestCase(TestCase):
         db.session.add(msg)
         db.session.commit()
 
-        like = Like(user_id=self.user.id,
-                    message_id=msg.id)
+        like = Like(
+            user_id=self.user.id,
+            message_id=msg.id
+        )
 
         db.session.add(like)
         db.session.commit()
@@ -143,8 +145,10 @@ class MessageModelTestCase(TestCase):
         db.session.add(msg)
         db.session.commit()
 
-        like = Like(user_id=self.user.id,
-                    message_id=msg.id)
+        like = Like(
+            user_id=self.user.id,
+            message_id=msg.id
+        )
 
         db.session.add(like)
         db.session.commit()
@@ -153,22 +157,23 @@ class MessageModelTestCase(TestCase):
 
         self.assertEqual(len(self.user.liked_messages), 0)
 
- #   def test_cannot_like_self_msgs(self):
- #       """Is a user unable to like their own messages?"""
- #
- #       msg = Message(
- #           text="test like message 123",
- #           user_id=self.user.id
- #       )
- #
-  #      db.session.add(msg)
-  #      db.session.commit()
-  #
-  #      like = Like(user_id=self.user.id,
-  #                  message_id=msg.id)
-  #      db.session.add(like)
-  #      db.session.commit()
-  #      breakpoint()
+    # def test_cannot_like_self_msgs(self):
+    #     """Is a user unable to like their own messages?"""
+
+    #     msg = Message(
+    #         text="test like message 123",
+    #         user_id=self.user.id
+    #     )
+
+    #     db.session.add(msg)
+    #     db.session.commit()
+
+    #     like = Like(
+    #         user_id=self.user.id,
+    #         message_id=msg.id
+    #     )
+    #     db.session.add(like)
+    #     db.session.commit()
 
   #TODO change like functionality to be a helper function that we can
-  # call in our tests?? unless this test should be handled in route tests
+  # call in our tests (unless this test should be handled in route tests)
