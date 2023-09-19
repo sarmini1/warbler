@@ -13,12 +13,12 @@ from forms import (
 )
 from models import db, connect_db, User, Message, Like
 
-# Get DB_URI from environ variable (useful for production/testing) or,
-# if not set there, use development local db.
-database_url = os.environ.get('DATABASE_URL', 'postgresql:///warbler')
+# Get DB_URI from environmental variable (useful for production/testing) or,
+# if not set there, use local db.
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql:///warbler')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
@@ -33,12 +33,9 @@ CURR_USER_KEY = "curr_user"
 ##############################################################################
 # User signup/login/logout
 
-
 @app.before_request
 def add_user_to_g():
     """If we're logged in, add curr user to Flask global."""
-    # this happens before every request since it's the view
-    # function for the before_request decorator
 
     # TODO look into flask middleware for this
 
@@ -60,7 +57,6 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
-        return True
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -126,20 +122,17 @@ def logout():
 
     form = CSRFValidationForm()
 
-    if form.validate_on_submit():
-        if do_logout():
-            flash("Successfully logged out!")
-            return redirect('/login')
-        else:
-            flash("You need to be logged in to logout!")
-            return redirect('/login')
-    else:
+    if not form.validate_on_submit() or not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    do_logout()
+
+    flash("You have successfully logged out.", 'success')
+    return redirect("/login")
+
 # #############################################################################
 # General user routes:
-
 
 @app.route('/users')
 def list_users():
